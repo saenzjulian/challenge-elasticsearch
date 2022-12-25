@@ -11,9 +11,12 @@ import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.client.RestHighLevelClientBuilder;
+import org.elasticsearch.index.query.MatchQueryBuilder;
+import org.elasticsearch.index.query.Operator;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
+import org.elasticsearch.search.sort.SortOrder;
 import org.elasticsearch.xcontent.XContentType;
 import org.example.model.Movie;
 
@@ -40,9 +43,8 @@ public class Main {
          * - index-name
          * - between quotes, (path or words)
          */
+        search();
 
-
-        Path currentWorkingDir = Paths.get(".").toAbsolutePath().getParent();
         File path = new File("../data");
         listFilesForFolder(path, "demo-dos");
     }
@@ -80,6 +82,27 @@ public class Main {
         }
     }
 
+    public static void search() throws IOException {
+        // Create the query
+        MatchQueryBuilder queryELK = QueryBuilders
+                .matchQuery("content", "walt disney")
+                .operator(Operator.AND);
 
+        // Build the search request
+        SearchRequest request = new SearchRequest("demo-dos");
+
+        SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
+        sourceBuilder.query(queryELK);
+        sourceBuilder.sort("title.keyword", SortOrder.ASC);
+        //sourceBuilder.fetchSource(new String[]{"title"}, null);
+ 
+        SearchResponse response = hlrc.search(request, RequestOptions.DEFAULT);
+
+        for (SearchHit hit : response.getHits().getHits()) {
+            System.out.println(hit.getSourceAsString());
+        }
+
+        hlrc.close();
+    }
 
 }
