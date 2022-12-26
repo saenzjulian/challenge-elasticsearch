@@ -36,17 +36,22 @@ public class Main {
     ).setApiCompatibilityMode(true).build();
 
     public static void main(String[] args) throws IOException {
-        /**
-         * TODO
-         * 1. get command line arguments
-         * - operation (upload, search)
-         * - index-name
-         * - between quotes, (path or words)
-         */
-        search();
 
-        File path = new File("../data");
-        listFilesForFolder(path, "demo-dos");
+        String operation = args[0] == "" ? "index" : args[0];
+        String indexName = args[1];
+        String thirdParameter = args[2];
+
+        switch (operation) {
+            case "upload":
+                listFilesForFolder(new File(thirdParameter), indexName);
+                break;
+            case "search":
+                search(indexName, thirdParameter);
+                break;
+            default:
+                System.out.println("Invalid command");
+        }
+
     }
 
     public static Movie mapperFileToMovie(File path) throws IOException {
@@ -80,23 +85,30 @@ public class Main {
                 );
             }
         }
+        hlrc.close();
     }
 
-    public static void search() throws IOException {
+    public static void search(String indexName, String words) throws IOException {
         // Create the query
         MatchQueryBuilder queryELK = QueryBuilders
-                .matchQuery("content", "walt disney")
+                .matchQuery("content", words)
                 .operator(Operator.AND);
 
         // Build the search request
-        SearchRequest request = new SearchRequest("demo-dos");
+        SearchRequest request = new SearchRequest(indexName);
 
         SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
         sourceBuilder.query(queryELK);
         sourceBuilder.sort("title.keyword", SortOrder.ASC);
+        sourceBuilder.trackTotalHits(true);
+        sourceBuilder.size(100);
         //sourceBuilder.fetchSource(new String[]{"title"}, null);
- 
+
+        request.source(sourceBuilder);
+
         SearchResponse response = hlrc.search(request, RequestOptions.DEFAULT);
+
+        System.out.println("your search appear: " + response.getHits().getTotalHits().value + " times");
 
         for (SearchHit hit : response.getHits().getHits()) {
             System.out.println(hit.getSourceAsString());
