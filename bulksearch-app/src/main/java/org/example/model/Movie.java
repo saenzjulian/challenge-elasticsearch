@@ -9,6 +9,9 @@ public class Movie {
         this.content = content;
     }
 
+    public Movie( ) {
+    }
+
     public String getTitle() {
         return title;
     }
