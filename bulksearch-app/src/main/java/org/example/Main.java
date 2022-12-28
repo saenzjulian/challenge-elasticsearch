@@ -26,9 +26,12 @@ import java.util.*;
 
 public class Main {
 
+    private static final String HOST_NAME = "localhost";
+    private static final Integer PORT = 9200;
+
     static RestHighLevelClient hlrc = new RestHighLevelClientBuilder(
         RestClient.builder(
-            new HttpHost("localhost", 9200)
+            new HttpHost(HOST_NAME, PORT)
         ).build()
     ).setApiCompatibilityMode(true).build();
 
@@ -45,7 +48,15 @@ public class Main {
         Response response = new Response();
         switch (operation) {
             case "upload":
-                listFilesForFolder(new File(thirdParameter), indexName);
+                Set<File> files = new HashSet<>();
+                files = getFilesRecursively(new File(thirdParameter), files);
+                Movie movie;
+                for (File f : files) {
+                    movie = mapperFileToMovie(f);
+                    bulkToELK(movie, indexName);
+                }
+                System.out.println("Upload done");
+                hlrc.close();
                 break;
             case "search":
                 response = search(indexName, thirdParameter);
@@ -58,7 +69,7 @@ public class Main {
         }
 
         // Getting report
-        if (response.getMovies().size() > 0 && (operation.equals("search") || operation.equals("native-search"))) {
+        if (operation.equals("search") || operation.equals("native-search")) {
             String message = "Search [" + response.getTarget()
                     + "] took [" + response.getMilliseconds()
                     + "] ms and found [" + response.getMovies().size() + "] results:";
@@ -70,8 +81,6 @@ public class Main {
             }
         }
     }
-
-
 
     public static Movie mapperFileToMovie(File path) throws IOException {
         FileReader fileReader = new FileReader(path);
@@ -91,20 +100,18 @@ public class Main {
         indexRequest.source(new ObjectMapper().writeValueAsString(movie), XContentType.JSON);
 
         hlrc.index(indexRequest, RequestOptions.DEFAULT);
+
     }
 
-    public static void listFilesForFolder(File folder, String index) throws IOException {
+    public static Set<File> getFilesRecursively(File folder, Set<File> toFill) throws IOException {
         for (File entry : folder.listFiles()) {
             if (entry.isDirectory()) {
-                listFilesForFolder(entry, index);
+                getFilesRecursively(entry, toFill);
             } else {
-                bulkToELK(
-                    mapperFileToMovie(entry),
-                    index
-                );
+                toFill.add(entry);
             }
         }
-        hlrc.close();
+        return toFill;
     }
 
     public static Response search(String indexName, String words) throws IOException {

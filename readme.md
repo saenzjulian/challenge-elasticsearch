@@ -9,7 +9,7 @@ Develop a tool that allows searching for a keyword in a set of +11,800 text file
 - Coverage of unit tests.
 - Versioned code.
 - Documentation to execute the code tool.
-- The keyword search does not have a logical order.
+- The keyword search doen't have a logical order.
 - When a keyword is composed, the search criteria must be `AND`.
 - Process executed up to 1ms.
 - The set of files can be pre-processed.
