@@ -2,7 +2,7 @@
 
 ## Challenge
 
-Develop a tool that allows searching for a keyword in a set of +11,000 text files.
+Develop a tool that allows searching for a keyword in a set of +11,800 text files.
 
 ## Requirements
 
@@ -22,7 +22,8 @@ Develop a tool that allows searching for a keyword in a set of +11,000 text file
 
 ## Project structure
 
-![Tree Folders](./diagram/tree-folders.png)
+```bash
+```
 
 ## Initial considerations
 

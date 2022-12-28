@@ -4,12 +4,10 @@ import org.elasticsearch.client.RestHighLevelClient;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.http.HttpHost;
 import org.elasticsearch.action.index.IndexRequest;
-import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestClient;
-import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.client.RestHighLevelClientBuilder;
 import org.elasticsearch.index.query.MatchQueryBuilder;
 import org.elasticsearch.index.query.Operator;
@@ -19,13 +17,12 @@ import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.elasticsearch.search.sort.SortOrder;
 import org.elasticsearch.xcontent.XContentType;
 import org.example.model.Movie;
+import org.example.model.Response;
 
 import java.io.*;
 import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
 import java.net.URL;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.util.*;
 
 public class Main {
 
@@ -36,23 +33,45 @@ public class Main {
     ).setApiCompatibilityMode(true).build();
 
     public static void main(String[] args) throws IOException {
-        demo();
+        //search("demo", "walt disney");
+        //nativeSearch("demo","walt disney");
+
+        // Getting parameters from command line
         String operation = args[0] == "" ? "index" : args[0];
         String indexName = args[1];
         String thirdParameter = args[2];
 
+        // Treatment of parameters
+        Response response = new Response();
         switch (operation) {
             case "upload":
                 listFilesForFolder(new File(thirdParameter), indexName);
                 break;
             case "search":
-                search(indexName, thirdParameter);
+                response = search(indexName, thirdParameter);
+                break;
+            case "native-search":
+                response = nativeSearch(indexName, thirdParameter);
                 break;
             default:
                 System.out.println("Invalid command");
         }
 
+        // Getting report
+        if (response.getMovies().size() > 0 && (operation.equals("search") || operation.equals("native-search"))) {
+            String message = "Search [" + response.getTarget()
+                    + "] took [" + response.getMilliseconds()
+                    + "] ms and found [" + response.getMovies().size() + "] results:";
+
+            System.out.println(message);
+
+            for (String movie : response.getMovies()) {
+                System.out.println(movie);
+            }
+        }
     }
+
+
 
     public static Movie mapperFileToMovie(File path) throws IOException {
         FileReader fileReader = new FileReader(path);
@@ -88,68 +107,61 @@ public class Main {
         hlrc.close();
     }
 
-    public static void search(String indexName, String words) throws IOException {
+    public static Response search(String indexName, String words) throws IOException {
         // Create the query
         MatchQueryBuilder queryELK = QueryBuilders
                 .matchQuery("content", words)
                 .operator(Operator.AND);
 
-        // Build the search request
+        // Create the request
         SearchRequest request = new SearchRequest(indexName);
 
+        // Build the request
         SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
         sourceBuilder.query(queryELK);
         sourceBuilder.sort("title.keyword", SortOrder.ASC);
         sourceBuilder.trackTotalHits(true);
-        //sourceBuilder.size(Integer.MAX_VALUE);
         sourceBuilder.size(10000);
         sourceBuilder.fetchSource(new String[]{"title"}, null);
 
+        // Prepare the request
         request.source(sourceBuilder);
 
-        long start = System.currentTimeMillis();
+        // Execute the request
         SearchResponse response = hlrc.search(request, RequestOptions.DEFAULT);
-        long finish = System.currentTimeMillis();
 
-        System.out.println("your search appear [" + response.getHits().getTotalHits().value + "] times");
-
+        // Map results
         ObjectMapper om = new ObjectMapper();
+        List<String> movies = new ArrayList<>();
         for (SearchHit hit : response.getHits().getHits()) {
-            //movie = om.readValue(hit.getSourceAsString(), Movie.class);
-            System.out.println(om.readValue(hit.getSourceAsString(), Movie.class).getTitle());
+            movies.add(om.readValue(hit.getSourceAsString(), Movie.class).getTitle());
         }
 
-        System.out.println("Time elapsed: " + (finish - start) + " ms");
-
+        // Close the connection
         hlrc.close();
+
+        return new Response(words, response.getTook().getMillis(), movies);
     }
 
-    public static void demo() throws IOException {
-        // Define the payload as a string
-        String payload = "{\"_source\": [\"title\"], \"query\": {\"match\": {\"content\": {\"query\": \"disney walt\",\"operator\": \"and\"}}},\"sort\": [{\"title.keyword\": {\"order\": \"asc\"}}]}";
+    private static Response nativeSearch(String indexName, String words) throws IOException {
+        String payload = "{\"_source\": [\"title\"], \"query\": {\"match\": {\"content\": {\"query\": \"" + words + "\",\"operator\": \"and\"}}},\"sort\": [{\"title.keyword\": {\"order\": \"asc\"}}]}";
 
-        // Create a new URL object with the desired URL
-        URL url = new URL("http://127.0.0.1:9200/demo/_search?size=100");
+        // Create url with endpoint
+        URL url = new URL("http://127.0.0.1:9200/" + indexName + "/_search?size=10000");
         HttpURLConnection con = (HttpURLConnection) url.openConnection();
 
-        // Set the request method to "GET" and the content type to "application/json"
+        // Create GET request
         con.setRequestMethod("GET");
         con.setRequestProperty("Content-Type", "application/json");
+        con.setDoOutput(true); // Configure the connection to write the payload on GET request
 
-        // Set the output stream to true to enable writing the payload to the request
-        con.setDoOutput(true);
-
-        // Write the payload to the request
-        long start = System.currentTimeMillis();
+        // Write the payload on request
         OutputStream os = con.getOutputStream();
         os.write(payload.getBytes());
         os.flush();
         os.close();
-        long end = System.currentTimeMillis();
-        // Retrieve the response code and response body
-        int responseCode = con.getResponseCode();
-        System.out.println("Response code: " + responseCode);
 
+        // Retrieve the response body
         BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));
         String inputLine;
         StringBuffer response = new StringBuffer();
@@ -159,10 +171,16 @@ public class Main {
         }
         in.close();
 
-        System.out.println(response.toString());
-        System.out.println("Time elapsed: " + (end - start) + " ms");
+        Map<Object, Object> mapping = new ObjectMapper().readValue(response.toString(), HashMap.class);
 
+        ArrayList<LinkedHashMap<Object, Object>> title = (ArrayList<LinkedHashMap<Object, Object>>) ((Map) mapping.get("hits")).get("hits");
+
+        List<String> movies = new ArrayList<>();
+        for (var x : title) {
+            movies.add( ((Map) x.get("_source")).get("title").toString() );
+        }
+        Long took = ((Number) mapping.get("took")).longValue();
+        return new Response(words, took, movies);
     }
-
 
 }
