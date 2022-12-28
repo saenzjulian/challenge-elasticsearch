@@ -36,9 +36,6 @@ public class Main {
     ).setApiCompatibilityMode(true).build();
 
     public static void main(String[] args) throws IOException {
-        //search("demo", "walt disney");
-        //nativeSearch("demo","walt disney");
-
         // Getting parameters from command line
         String operation = args[0] == "" ? "index" : args[0];
         String indexName = args[1];

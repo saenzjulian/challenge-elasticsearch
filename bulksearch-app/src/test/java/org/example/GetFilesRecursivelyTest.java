@@ -15,7 +15,7 @@ class GetFilesRecursivelyTest {
     @Test
     public void testGetFilesRecursively() throws IOException {
         // Create a temporary folder structure for testing
-        File tempDir = new File("./tempTesting");
+        File tempDir = new File("./tempTesting1");
         tempDir.mkdir();
         File subdir1 = new File(tempDir, "subdir1");
         subdir1.mkdir();

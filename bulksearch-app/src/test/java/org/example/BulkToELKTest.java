@@ -79,7 +79,7 @@ public class BulkToELKTest {
         SearchResponse searchResponse = hlrc.search(searchRequest, RequestOptions.DEFAULT);
 
         // Assert that the Movie object was found
-        assertEquals(1, searchResponse.getHits().getTotalHits().value);
+        assertEquals(3, searchResponse.getHits().getTotalHits().value);
 
     }
 }

@@ -47,6 +47,8 @@ docker-compose up -d
 
 We can now access ***ElasticSearch*** and ***Kibana*** instances at `http://localhost:9200` and `http://localhost:5601` respectively.
 
+In case you don't have Docker installed, [use this tutorial.](https://linuxhint.com/install-docker-compose-windows/)
+
 ### ***Step 02***
 
 Populate the ElasticSearch instance with information from the text files found in the `./data`.
@@ -104,7 +106,14 @@ Result with `native-search` option
 
 ## Running unit tests
 
+![Result Of Search](./diagram/execution-unit-tests.png)
 
+Ejecuta vía comando las pruebas unitarias con el siguiente comando:
+
+```bash
+> cd ./unit-test
+> java -cp "junit-4.13.2.jar;." org.junit.runner.JUnitCore <ClassNameToTest>
+```
 
 ## Query used to retrieve data
 
