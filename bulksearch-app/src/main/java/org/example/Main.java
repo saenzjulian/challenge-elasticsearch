@@ -187,6 +187,9 @@ public class Main {
             movies.add( ((Map) x.get("_source")).get("title").toString() );
         }
         Long took = ((Number) mapping.get("took")).longValue();
+
+        hlrc.close();
+
         return new Response(words, took, movies);
     }
 

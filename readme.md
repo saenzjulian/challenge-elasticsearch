@@ -9,7 +9,7 @@ Develop a tool that allows searching for a keyword in a set of +11,800 text file
 - Coverage of unit tests.
 - Versioned code.
 - Documentation to execute the code tool.
-- The keyword search doen't have a logical order.
+- The keyword search doesn't have a logical order.
 - When a keyword is composed, the search criteria must be `AND`.
 - Process executed up to 1ms.
 - The set of files can be pre-processed.
@@ -87,4 +87,45 @@ Result with `search` option
 
 Result with `native-search` option
 
-![Result Of Native-Search](./diagram/result-search.png)
+![Result Of Native-Search](./diagram/result-native-search.png)
+
+---
+
+# Technical section
+
+## Stack
+
+| Technology | Using |
+|:---:|:---:|
+| ![My Skills](https://skills.thijs.gg/icons?i=java&theme=light) | Build application |
+| ![My Skills](https://skills.thijs.gg/icons?i=bash&theme=light) | Run commands |
+| ![My Skills](https://skills.thijs.gg/icons?i=docker&theme=light) | Prepare environment |
+| <img width = '50px' title="ElasticSearch" align= 'center' src="https://user-images.githubusercontent.com/9143253/47912437-f749bc00-de98-11e8-9669-e97f58b8be2e.png"> | Index data |
+
+## Running unit tests
+
+
+
+## Query used to retrieve data
+
+```json
+get /index-name/_search
+{
+  "_source": ["field-to-search"],
+  "query": {
+    "match": {
+      "content": {
+        "query": "words keys",
+        "operator": "and"
+      }
+    }
+  },"sort": [
+    {
+      "title": {
+        "order": "asc"
+      }
+    }
+  ]
+}
+```
+
